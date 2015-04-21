@@ -1,7 +1,7 @@
-# Author: Maja Zalewska nr336088
 CC = gcc
 CFLAGS = -Wall
 
+# Author: Maja Zalewska nr336088
 NAME = dictionary
 NAMED = dictionary.dbg
 OBJECTS = trie.o parse.o dictionary.o vector.o

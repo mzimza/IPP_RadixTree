@@ -18,6 +18,7 @@
 #define VALID_OPT	'v'
 #define NUMBER_SET	"0123456789"
 #define CHAR_SET	"abcdefghijklmnopqrstuvwxyz"
+#define WHITESPACE	"\t "
 #define LAST_INSERT	't'
 #define LAST_FIND	'd'
 #define BASE	10
@@ -114,8 +115,10 @@ int check_for_options(int argc, char * const argv[])
 	return flags;
 }
 
-char *get_word(int command, char *line)
+char *get_word(int command, char *line, int bytesRead)
 {
+	/* change '\n' into '\0' */
+	line[bytesRead - 1] = '\0';
 	char *pattern = line;
 	switch (command) {
 		case INSERT_CORRECT:
@@ -125,7 +128,14 @@ char *get_word(int command, char *line)
 			pattern = index(line, LAST_FIND);
 			break;
 	}
-	return strpbrk(pattern + 1, CHAR_SET);
+	pattern = strpbrk(pattern + 1, CHAR_SET);
+	/* delete unnecessary whitespaces at the end */
+	char *end = strpbrk(pattern, WHITESPACE);
+	int l_p = strlen(pattern);
+	int l_e = (end == NULL ? 0 : strlen(end));
+	pattern[l_p - l_e] = '\0';
+	fprintf(stderr, "<parse get_word> %s i size: %d\n", pattern, strlen(pattern));
+	return pattern;
 }
 
 void get_number_prev(int *number, int *start, int *end, char *line)

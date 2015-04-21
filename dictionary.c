@@ -26,16 +26,18 @@ regex_t insert_r, prev_r, find_r, delete_r, clear_r;
 
 void exit_dictionary(int sig)
 {
-   printf("Caught interrupt signal. Exiting...\n");
-   free_all(&insert_r, &prev_r, &find_r, &delete_r, &clear_r);
-   free(line);
-   exit(0);
+	printf("Caught interrupt signal. Exiting...\n");
+	free_all(&insert_r, &prev_r, &find_r, &delete_r, &clear_r);
+	free(line);
+	exit(0);
 }
 
 int main(int argc, char *argv[])
 {
 	/* clean everything nicely up, if SIGINT */
 	if (signal(SIGINT, exit_dictionary) == SIG_ERR)
+		fprintf(stderr, "Signal handling error\n");
+	if (signal(SIGSEGV, exit_dictionary) == SIG_ERR)
 		fprintf(stderr, "Signal handling error\n");
 
 	if ((option_set = check_for_options(argc, argv))) {
@@ -52,10 +54,11 @@ int main(int argc, char *argv[])
 	while (!feof(stdin)) {
 		readBytes = read_line(&line);
 		if (readBytes != ERROR) {
-			matchType = match(&insert_r, &prev_r, &find_r, &delete_r, &clear_r, line);
+			matchType = match(&insert_r, &prev_r, &find_r, &delete_r, &clear_r,
+					line);
 			switch (matchType) {
 				case INSERT_CORRECT:
-					pattern = get_word(INSERT_CORRECT, line);
+					pattern = get_word(INSERT_CORRECT, line, readBytes);
 					printf("%s", pattern);
 					if ((checkNodes = insert(pattern)) == ERROR)
 						ignore();
@@ -77,7 +80,7 @@ int main(int argc, char *argv[])
 					}
 					break;
 				case FIND_CORRECT:
-					pattern = get_word(FIND_CORRECT, line);
+					pattern = get_word(FIND_CORRECT, line, readBytes);
 					printf("%s", pattern);
 					print_find(find(pattern));
 					break;
@@ -99,10 +102,9 @@ int main(int argc, char *argv[])
 				default:
 					ignore();
 			}
-
+			if (option_set)
+				print_nodes(nodes);
 		}
-		if (option_set)
-			print_nodes(nodes);
 		free(line);
 		line = 0;
 	}

@@ -24,7 +24,7 @@ int match(regex_t *, regex_t *, regex_t *, regex_t *, regex_t *, const char *);
 int read_line(char **);
 int match_regex(regex_t *, const char *);
 int check_for_options(int, char * const[]);
-char *get_word(int, char *);
+char *get_word(int, char *, int);
 void get_number_prev(int *, int *, int *, char *);
 void get_number_delete(int *, char *);
 void ignore();

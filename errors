@@ -1,0 +1,120 @@
+==23223== Memcheck, a memory error detector
+==23223== Copyright (C) 2002-2013, and GNU GPL'd, by Julian Seward et al.
+==23223== Using Valgrind-3.10.0.SVN and LibVEX; rerun with -h for copyright info
+==23223== Command: ./dictionary.dbg -v
+==23223== 
+<parse get_word> aaa i size: 3
+<init_dict> correct? length: 3
+<print_tree> node_number: -1
+<print_tree> children: 1
+---------------------------------
+<print_tree> label: aaa
+<print_tree> parent node_number: -1 and my number: 0
+<print_tree> parent children: 1
+<print_tree> node_number: 0
+<print_tree> children: 0
+---------------------------------
+<print_tree> parent label: aaa
+nodes: 2
+<prev> at(words, number) != NULL i length: 3
+<trie check_coincident> pattern: aa label: aaa
+<trie check_coincident> YES
+nie ma takiego slowa: aa
+<print_tree> node_number: -1
+<print_tree> children: 1
+---------------------------------
+<print_tree> label: aaa
+<print_tree> parent node_number: -1 and my number: 0
+<print_tree> parent children: 1
+<print_tree> node_number: 0
+<print_tree> children: 0
+---------------------------------
+<print_tree> parent label: aaa
+<insert> crossNode nr: -1 edge[a]=aaa
+<insert> crossNode->child nr: 0
+<trie check_coincident> pattern: aa label: aaa
+<trie check_coincident> YES
+<insert> zawiera sie, nowy mid-wezel aa i label: aaa
+<insert> oldNode number: 0
+<print_tree> node_number: -1
+<print_tree> children: 1
+---------------------------------
+<print_tree> label: aa
+<print_tree> parent node_number: -1 and my number: 1
+<print_tree> parent children: 1
+<print_tree> node_number: 1
+<print_tree> children: 1
+---------------------------------
+<print_tree> parent label: aa
+<print_tree> label: a
+<print_tree> parent node_number: 1 and my number: 0
+<print_tree> parent children: 1
+<print_tree> node_number: 0
+<print_tree> children: 0
+---------------------------------
+<print_tree> parent label: a
+nodes: 3
+aaa<vector push_back>: adding node nr: 0
+word number: 0
+prev: 0 1 2
+<vector push_back>: adding node nr: 1
+word number: 1
+==23223== 
+==23223== HEAP SUMMARY:
+==23223==     in use at exit: 1,043 bytes in 16 blocks
+==23223==   total heap usage: 1,289 allocs, 1,273 frees, 132,106 bytes allocated
+==23223== 
+==23223== 3 bytes in 1 blocks are definitely lost in loss record 3 of 16
+==23223==    at 0x4C2AB80: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23223==    by 0x400E4D: substring (trie.c:80)
+==23223==    by 0x401FED: prev (trie.c:353)
+==23223==    by 0x402C6A: main (dictionary.c:74)
+==23223== 
+==23223== 3 bytes in 1 blocks are definitely lost in loss record 4 of 16
+==23223==    at 0x4C2AB80: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23223==    by 0x400E4D: substring (trie.c:80)
+==23223==    by 0x400ED4: suffix (trie.c:95)
+==23223==    by 0x401A0D: insert (trie.c:284)
+==23223==    by 0x40203A: prev (trie.c:358)
+==23223==    by 0x402C6A: main (dictionary.c:74)
+==23223== 
+==23223== 4 bytes in 1 blocks are definitely lost in loss record 5 of 16
+==23223==    at 0x4C2AB80: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23223==    by 0x401004: create_edge (trie.c:125)
+==23223==    by 0x40116F: init_dict (trie.c:151)
+==23223==    by 0x4017FC: insert (trie.c:259)
+==23223==    by 0x402BC1: main (dictionary.c:63)
+==23223== 
+==23223== 4 bytes in 1 blocks are definitely lost in loss record 6 of 16
+==23223==    at 0x4C2AB80: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23223==    by 0x400D99: concatenate (trie.c:62)
+==23223==    by 0x401FDD: prev (trie.c:353)
+==23223==    by 0x402C6A: main (dictionary.c:74)
+==23223== 
+==23223== 4 bytes in 1 blocks are definitely lost in loss record 7 of 16
+==23223==    at 0x4C2AB80: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23223==    by 0x400E4D: substring (trie.c:80)
+==23223==    by 0x400ED4: suffix (trie.c:95)
+==23223==    by 0x402179: find (trie.c:403)
+==23223==    by 0x401FFD: prev (trie.c:355)
+==23223==    by 0x402C6A: main (dictionary.c:74)
+==23223== 
+==23223== 4 bytes in 1 blocks are definitely lost in loss record 8 of 16
+==23223==    at 0x4C2AB80: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==23223==    by 0x400E4D: substring (trie.c:80)
+==23223==    by 0x400ED4: suffix (trie.c:95)
+==23223==    by 0x4018FE: insert (trie.c:274)
+==23223==    by 0x40203A: prev (trie.c:358)
+==23223==    by 0x402C6A: main (dictionary.c:74)
+==23223== 
+==23223== LEAK SUMMARY:
+==23223==    definitely lost: 22 bytes in 6 blocks
+==23223==    indirectly lost: 0 bytes in 0 blocks
+==23223==      possibly lost: 0 bytes in 0 blocks
+==23223==    still reachable: 1,021 bytes in 10 blocks
+==23223==         suppressed: 0 bytes in 0 blocks
+==23223== Reachable blocks (those to which a pointer was found) are not shown.
+==23223== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==23223== 
+==23223== For counts of detected and suppressed errors, rerun with: -v
+==23223== ERROR SUMMARY: 6 errors from 6 contexts (suppressed: 0 from 0)

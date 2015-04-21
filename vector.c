@@ -20,13 +20,14 @@ void resize(vector *vec, int newLimit)
 	}
 }
 
-int push_back(vector *vec, void *node)
+void push_back(vector *vec, void *node)
 {
 	if (vec->size == vec->limit)
 		resize(vec, vec->limit * 2);
 	vec->tab[vec->size] = node;
 	vec->size++;
-	return (vec->size - 1);
+	printf("<vector push_back>: adding node nr: %d\n", vec->size - 1);
+//	return (vec->size - 1);
 }
 
 void *at(vector *vec, int pos)
@@ -78,8 +79,8 @@ int number_of_elements(vector *vec)
 
 void init(vector *vec)
 {
-	vec->tab = malloc(sizeof(void *) * BASE_SIZE);
-	vec->size = 0;
-	vec->limit = BASE_SIZE;
-	vec->deleted = 0;
+	(vec)->tab = malloc(sizeof(void *) * BASE_SIZE);
+	(vec)->size = 0;
+	(vec)->limit = BASE_SIZE;
+	(vec)->deleted = 0;
 }

@@ -18,7 +18,7 @@ typedef struct {
 	int deleted;
 } vector;
 
-int push_back(vector *, void *);
+void push_back(vector *, void *);
 void *at(vector *, int);
 void set(vector *, int, void *);
 int delete_at(vector *, int);
