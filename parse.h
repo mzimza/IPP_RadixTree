@@ -29,7 +29,7 @@ void get_number_prev(int *, int *, int *, char *);
 void get_number_delete(int *, char *);
 void ignore();
 void on_success(int);
-void print_find(int);
+void print_find(int, int*);
 void print_delete(int);
 void print_clear();
 void print_nodes(int);

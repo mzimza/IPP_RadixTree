@@ -14,5 +14,6 @@
 #define LEAF	2	/*pattern found is a word */
 
 #define ERROR	-1
+#define NO_NUMBER	-1
 
 #endif /* DEFINES_H_ */

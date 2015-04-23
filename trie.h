@@ -8,8 +8,8 @@
 #ifndef TRIE_H_
 #define TRIE_H_
 
-//Wstawia podane słowo word do słownika.
-int insert(char *);
+//Wstawia podane słowo word do słownika, ewentualnie jego substring od start do end.
+int insert(char *, int, int);
 //Wstawia do słownika słowo będące podsłowem słowa o numerze number, zaczynającym się na pozycji start i kończącym się na pozycji end (włącznie z tymi dwiema pozycjami). Pozycje liter w słowach numerujemy od 0.
 int prev(int, int, int);
 //Usuwa ze słownika słowo o numerze number.
@@ -18,7 +18,5 @@ int delete (int);
 int find (char *);
 //Całkowicie czyści słownik
 void clear(int *, int *);
-char *concatenate(int);
-char *substring(char *, int, int);
 
 #endif /* TRIE_H_ */

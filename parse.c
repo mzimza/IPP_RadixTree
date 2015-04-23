@@ -134,7 +134,7 @@ char *get_word(int command, char *line, int bytesRead)
 	int l_p = strlen(pattern);
 	int l_e = (end == NULL ? 0 : strlen(end));
 	pattern[l_p - l_e] = '\0';
-	fprintf(stderr, "<parse get_word> %s i size: %d\n", pattern, strlen(pattern));
+	fprintf(stderr, "<parse get_word> %s i size: %d\n", pattern, (int)strlen(pattern));
 	return pattern;
 }
 
@@ -168,14 +168,16 @@ void on_success(int number)
 	fprintf(stdout, "word number: %d\n", number);
 }
 
-void print_find(int succ)
+void print_find(int succ, int *error)
 {
 	if ((succ == YES) || (succ == LEAF))
 		fprintf(stdout, "YES\n");
 	else if (succ == NO)
 		fprintf(stdout, "NO\n");
-	else
+	else {
+		*error = YES;
 		ignore();
+	}
 }
 
 void print_delete(int number)

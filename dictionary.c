@@ -22,6 +22,7 @@ int matchType;
 int number, start, end;
 int counter, nodes, option_set;
 int checkNodes;
+int ignored;
 regex_t insert_r, prev_r, find_r, delete_r, clear_r;
 
 void exit_dictionary(int sig)
@@ -43,6 +44,7 @@ int main(int argc, char *argv[])
 	if ((option_set = check_for_options(argc, argv))) {
 		nodes = 0;
 		checkNodes = 0;
+		ignored = NO;
 	}
 
 	/* prepare regexes for different commands */
@@ -60,8 +62,10 @@ int main(int argc, char *argv[])
 				case INSERT_CORRECT:
 					pattern = get_word(INSERT_CORRECT, line, readBytes);
 					printf("%s", pattern);
-					if ((checkNodes = insert(pattern)) == ERROR)
+					if ((checkNodes = insert(pattern, NO_NUMBER, NO_NUMBER)) == ERROR) {
+						ignored = YES;
 						ignore();
+					}
 					else {
 						nodes = checkNodes;
 						on_success(counter);
@@ -71,8 +75,10 @@ int main(int argc, char *argv[])
 				case PREV_CORRECT:
 					get_number_prev(&number, &start, &end, line);
 					printf("prev: %d %d %d\n", number, start, end);
-					if ((checkNodes = prev(number, start, end)) == ERROR)
+					if ((checkNodes = prev(number, start, end)) == ERROR) {
+						ignored = YES;
 						ignore();
+					}
 					else {
 						nodes = checkNodes;
 						on_success(counter);
@@ -82,17 +88,18 @@ int main(int argc, char *argv[])
 				case FIND_CORRECT:
 					pattern = get_word(FIND_CORRECT, line, readBytes);
 					printf("%s", pattern);
-					print_find(find(pattern));
+					print_find(find(pattern), &ignored);
 					break;
 				case DELETE_CORRECT:
 					get_number_delete(&number, line);
 					printf("%d \n", number);
-					if ((checkNodes = delete(number)) == ERROR)
+					if ((checkNodes = delete(number)) == ERROR) {
+						ignored = YES;
 						ignore();
+					}
 					else {
 						nodes = checkNodes;
 						print_delete(number);
-						counter++;
 					}
 					break;
 				case CLEAR_CORRECT:
@@ -100,15 +107,19 @@ int main(int argc, char *argv[])
 					print_clear();
 					break;
 				default:
+					ignored = YES;
 					ignore();
 			}
-			if (option_set)
+			if ((option_set) && (ignored == NO)) {
 				print_nodes(nodes);
+				ignored = NO;
+			}
 		}
 		free(line);
 		line = 0;
 	}
 	/* tidy up */
 	free_all(&insert_r, &prev_r, &find_r, &delete_r, &clear_r);
+	clear(&counter, &nodes);
 	return 0;
 }

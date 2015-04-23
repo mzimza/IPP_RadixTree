@@ -9,7 +9,6 @@
 #include <string.h>
 #include "vector.h"
 
-
 void resize(vector *vec, int newLimit)
 {
 	vec->limit *= 2;
@@ -26,7 +25,7 @@ void push_back(vector *vec, void *node)
 		resize(vec, vec->limit * 2);
 	vec->tab[vec->size] = node;
 	vec->size++;
-	printf("<vector push_back>: adding node nr: %d\n", vec->size - 1);
+	fprintf(stderr, "<vector push_back>: adding node nr: %d i wsadzam wskaźnik: %#010x\n", vec->size - 1, (unsigned int) node);
 //	return (vec->size - 1);
 }
 
@@ -47,6 +46,7 @@ int delete_at(vector *vec, int pos)
 {
 	int shift = 0;
 	if ((pos >= 0) && (pos < vec->limit)) {
+		free(vec->tab[pos]);
 		vec->tab[pos] = NULL;
 		vec->deleted++;
 	}
@@ -62,10 +62,15 @@ int delete_at(vector *vec, int pos)
 
 void delete_all(vector *vec)
 {
-	free(vec->tab);
+	int i = 0;
+	for (i = 0; i < vec->size; i++)
+		if (vec->tab[i] != NULL) {
+			fprintf(stderr, "<delete_all> usuwam wskaźnik: %#010x\n", (unsigned int)vec->tab[i]);
+			free(vec->tab[i]);
+		}
+	if (vec->tab != NULL)
+		free(vec->tab);
 }
-
-
 
 int size(vector *vec)
 {
@@ -80,6 +85,7 @@ int number_of_elements(vector *vec)
 void init(vector *vec)
 {
 	(vec)->tab = malloc(sizeof(void *) * BASE_SIZE);
+	memset(vec->tab, 0, BASE_SIZE);
 	(vec)->size = 0;
 	(vec)->limit = BASE_SIZE;
 	(vec)->deleted = 0;
