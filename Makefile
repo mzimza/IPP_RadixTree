@@ -1,7 +1,8 @@
-CC = gcc
-CFLAGS = -Wall
-
 # Author: Maja Zalewska nr336088
+
+CC = gcc
+CFLAGS = -Wall -O2
+
 NAME = dictionary
 NAMED = dictionary.dbg
 OBJECTS = trie.o parse.o dictionary.o vector.o
@@ -27,7 +28,7 @@ dictionary: $(OBJECTS)
 	
 #tworzy też plik dictionary.dbg
 debug: clean
-debug: CFLAGS += -g
+debug: CFLAGS = -Wall -g
 debug: NAME = $(NAMED)
 debug: all
 

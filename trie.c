@@ -40,6 +40,7 @@ typedef struct node {
 typedef struct nodeInfo {
 	node *node;
 	int length;
+	int start;
 } nodeInfo;
 
 vector *words = NULL;
@@ -48,19 +49,15 @@ node *root = NULL;
 int nodes = 0;	// number of nodes in the dictionary
 int shift = 0;	// shift in numeration after deletion
 
-int is_leaf(node *node)
-{
-	if (node->children == 0)
-		return YES;
-	else
-		return NO;
-}
+/********************************************************************************
+ *					STATIC FUNCTIONS FOR THIS FILE								*
+ *********************************************************************************/
 
+/**************************STRING OPERATIONS************************************/
 // get the word to be inserted by prev
-char *concatenate(int number, int start, int end)
+static char *concatenate(int number, int start, int end)
 {
 	char *word = NULL;
-	//char *suffix = "\0";
 	node *currentNode = NULL;
 	int size = end - start + 1;
 	currentNode = ((nodeInfo *) (at(words, number)))->node;
@@ -70,25 +67,8 @@ char *concatenate(int number, int start, int end)
 	return word;
 
 }
-/*while (currentNode->parentEdge != NULL) {
- //z węzła w którym jestem chcę wziąc label z krawedzi do ojca
- word = malloc(
- sizeof(char)
- * (strlen(currentNode->parentEdge->label)
- + strlen(suffix)) + 1);
- size = sprintf(word, "%s%s", currentNode->parentEdge->label, suffix);
- if (size == ERROR) {
- printf("cus nie pyka\n");
- return NULL;
- }
- suffix = word;
- currentNode = currentNode->parentEdge->parent;
- }
- return word;
- }
- */
 
-char *substring(char *pattern, int start, int end)
+static char *substring(char *pattern, int start, int end)
 {
 	int length = end - start + 1;
 	char *new = malloc(sizeof(char) * length + 1);
@@ -97,12 +77,12 @@ char *substring(char *pattern, int start, int end)
 	return new;
 }
 
-int get_index(char c)
+static int get_index(char c)
 {
 	return (c - ASCII_SHIFT);
 }
 
-char *suffix(char *pattern, int elementsFound)
+static char *suffix(char *pattern, int elementsFound)
 {
 	if (pattern != NULL) {
 		int length = strlen(pattern);
@@ -111,22 +91,20 @@ char *suffix(char *pattern, int elementsFound)
 	return NULL;
 }
 
-int check_coincident(char *pattern, int *elementsFound, char *label, int start,
-		int end)
+static int check_coincident(char *pattern, int *elementsFound, char *label,
+		int start, int end)
 {
 	int i = 0;
 	int length_p, length_l;
 	length_p = strlen(pattern);
 	length_l = end - start + 1;
-	fprintf(stderr, "<trie check_coincident> pattern: %s label: %s\n", pattern,
-			label);
+	/* follow the pattern */
 	while ((i < length_p) && (i < length_l) && (pattern[i] == label[i + start])) {
 		i++;
 		(*elementsFound)++;
 	}
 	/* either found pattern or the label ended before pattern */
 	if ((i == length_p) || (i == length_l)) {
-		fprintf(stderr, "<trie check_coincident> YES\n");
 		return YES;
 	}
 	else
@@ -134,7 +112,7 @@ int check_coincident(char *pattern, int *elementsFound, char *label, int start,
 		return NO;
 }
 
-char * store_label(char *word)
+static char *store_label(char *word)
 {
 	int length = strlen(word);
 	char *label = malloc(sizeof(char) * strlen(word) + 1);
@@ -144,7 +122,17 @@ char * store_label(char *word)
 	return label;
 }
 
-labelInfo *create_labelInfo(char *label, int start, int end)
+/*********************************TRIE MANIPULATION*****************************/
+
+static int is_leaf(node *node)
+{
+	if (node->children == 0)
+		return YES;
+	else
+		return NO;
+}
+
+static labelInfo *create_labelInfo(char *label, int start, int end)
 {
 	labelInfo *info = malloc(sizeof(labelInfo));
 	info->label = label;
@@ -153,90 +141,59 @@ labelInfo *create_labelInfo(char *label, int start, int end)
 	return info;
 }
 
-void create_edge(edge **edge, char *word, int start, int end, node **parentNode)
+static edge *create_edge(char *word, int start, int end, node *parentNode)
 {
-	*edge = malloc(sizeof(struct edge));
-	(*edge)->label = create_labelInfo(word, start, end);
-	(*edge)->parent = (parentNode == NULL ? NULL : *parentNode);
-	(*edge)->child = NULL;
+	edge *edge = malloc(sizeof(struct edge));
+	edge->label = create_labelInfo(word, start, end);
+	edge->parent = (parentNode == NULL ? NULL : parentNode);
+	edge->child = NULL;
+	return edge;
 }
 
-void create_node(node **node, int number, edge **parentEdge)
+static node *create_node(int number, edge *parentEdge)
 {
-	*node = malloc(sizeof(struct node));
+	node *node = malloc(sizeof(struct node));
 	int i;
 	for (i = 0; i < INDEXES; i++)
-		(*node)->edges[i] = NULL;
-	(*node)->parentEdge = (parentEdge == NULL ? NULL : *parentEdge);
-	(*node)->wordNum = number;
-	(*node)->children = 0;
+		node->edges[i] = NULL;
+	node->parentEdge = (parentEdge == NULL ? NULL : parentEdge);
+	node->wordNum = number;
+	node->children = 0;
 	nodes++;
+	return node;
 }
 
-void create_nodeInfo(nodeInfo **info, node *node, int length)
+static nodeInfo *create_nodeInfo(node *node, int length, int start)
 {
-	*info = malloc(sizeof(nodeInfo));
-	(*info)->node = node;
-	(*info)->length = length;
-	push_back(words, (void *) *info);
+	nodeInfo *info = malloc(sizeof(nodeInfo));
+	info->node = node;
+	info->length = length;
+	info->start = start;
+	push_back(words, (void *) info);
+	return info;
 }
 
-void init_dict(node **node, char *word)
+static node *init_dict(char *word)
 {
 	char *label = store_label(word);
 	int index = get_index(label[0]);
-	create_node(node, NO_NUMBER, NULL);
-	(*node)->parentEdge = NULL;
+	node *node = create_node(NO_NUMBER, NULL);
+	node->parentEdge = NULL;
 	int length = strlen(label);
-	create_edge(&((*node)->edges[index]), label, 0, length - 1, node);
-	(*node)->children++;
-	fprintf(stderr, "<init_dict> label end: %d, start: %d i label: %s\n",
-			(*node)->edges[index]->label->end,
-			(*node)->edges[index]->label->start,
-			(*node)->edges[index]->label->label);
-	create_node(&(((*node)->edges[index])->child), 0, &((*node)->edges[index]));
-	/* add leaf to leaves vector */
-	nodeInfo *nodeIn = NULL;
-	create_nodeInfo(&nodeIn, (*node)->edges[index]->child, length);
-	/* debug */
-	nodeInfo *nodeIn2 = ((nodeInfo *) at(words, 0));
-	int l = nodeIn2->length;
-	fprintf(stderr, "<init_dict> correct? length: %d\n", l);
-}
-
-void print_tree(node *currentNode)
-{
-	int i = 0;
-	edge *currentEdge = NULL;
-	fprintf(stderr, "<print_tree> node_number: %d\n", (currentNode)->wordNum);
-	fprintf(stderr, "<print_tree> children: %d\n", (currentNode)->children);
-	fprintf(stderr, "---------------------------------\n");
-	if (currentNode->parentEdge != NULL) {
-		fprintf(stderr, "<print_tree> parent label: %s, od: %d do: %d\n",
-				(currentNode)->parentEdge->label->label,
-				(currentNode)->parentEdge->label->start,
-				(currentNode)->parentEdge->label->end);
-	}
+	node->edges[index] = create_edge(label, 0, length - 1, node);
+	node->children++;
+	if (words == NULL)
+		node->edges[index]->child = create_node(0, node->edges[index]);
 	else
-		fprintf(stderr, "<print_tree> nie mam parenta\n");
-	for (i = 0; i < INDEXES; i++) {
-		(currentEdge) = (currentNode)->edges[i];
-		if (currentEdge != NULL) {
-			assert(currentEdge->label != NULL);
-			fprintf(stderr, "<print_tree> label: %s\n",
-					(currentEdge)->label->label);
-			fprintf(stderr,
-					"<print_tree> parent node_number: %d and my number: %d\n",
-					(currentEdge)->parent->wordNum,
-					currentEdge->child->wordNum);
-			fprintf(stderr, "<print_tree> parent children: %d\n",
-					(currentEdge)->parent->children);
-			print_tree(((currentEdge)->child));
-		}
-	}
+		node->edges[index]->child = create_node(size(words),
+				node->edges[index]);
+	/* add leaf to leaves vector */
+	create_nodeInfo(node->edges[index]->child, length, 0);
+	return node;
 }
 
-node *split_edge(edge *old, int index, int nodeNr)
+/* splits edge into two and add a node in between */
+static node *split_edge(edge *old, int index, int nodeNr)
 {
 	/* higher label with the beginning of the word */
 	int oldEnd = old->label->start + index - 1;
@@ -244,58 +201,65 @@ node *split_edge(edge *old, int index, int nodeNr)
 	int newStart = old->label->start + index;
 	int newEnd = old->label->end;
 	old->label->end = oldEnd;
-	node *midNode;
-	create_node(&midNode, nodeNr, &old);
+	node *midNode = create_node(nodeNr, old);
 	midNode->children++;
 	char first = *(old->label->label + newStart);
-	create_edge(&(midNode->edges[get_index(first)]), old->label->label,
-			newStart, newEnd, &(midNode));
+	midNode->edges[get_index(first)] = create_edge(old->label->label, newStart,
+			newEnd, midNode);
 	midNode->edges[get_index(first)]->child = old->child;
 	old->child->parentEdge = midNode->edges[get_index(first)];
 	old->child = midNode;
 	return midNode;
 }
 
-void add_node(node *mid, int index, int nodeNr, char *word)
+/* add node with parent edge to an existing node */
+static void add_node(node *mid, int index, int nodeNr, char *word, int start)
 {
 	int next = get_index(word[index]);
-	create_edge(&(mid->edges[next]), word, index, strlen(word) - 1, &mid);
-	create_node(&(mid->edges[next]->child), nodeNr, &(mid->edges[next]));
+	mid->edges[next] = create_edge(word, index, strlen(word) - 1, mid);
+	mid->edges[next]->child = create_node(nodeNr, mid->edges[next]);
 	mid->children++;
-	nodeInfo *info = NULL;
-	create_nodeInfo(&info, mid->edges[next]->child, strlen(word));
+	//nodeInfo *info = NULL;
+	create_nodeInfo(mid->edges[next]->child, strlen(word), start);
 }
 
-void add_node_prev(node *mid, int start, int end, int nodeNr, char *word)
+/* variation of add_node, but used with prev command */
+static void add_node_prev(node *mid, int wordStart, int start, int end, int nodeNr,
+		char *word)
 {
 	int next = get_index(word[start]);
-	create_edge(&(mid->edges[next]), word, start, end, &mid);
-	create_node(&(mid->edges[next]->child), nodeNr, &(mid->edges[next]));
+	mid->edges[next] = create_edge(word, start, end, mid);
+	mid->edges[next]->child = create_node(nodeNr, mid->edges[next]);
 	mid->children++;
-	nodeInfo *info = NULL;
-	create_nodeInfo(&info, mid->edges[next]->child, end - start + 1);
+	create_nodeInfo(mid->edges[next]->child, end - wordStart + 1, wordStart);
 }
 
-//TODO push_back nodeInfo not node
-//returns number of nodes on success, else ERROR
-//if start set to NO_NUMBER add new word to vector
+/********************************************************************************
+*								TRIE OPERATIONS									*
+*********************************************************************************/
+
+/* returns number of nodes on success, else ERROR,
+ * if start set to NO_NUMBER adds new word to vector */
 int insert(char *word, int start, int end)
 {
-	fprintf(stderr, "<insert>: word: %s, start: %d, end: %d\n", word, start, end);
-	//easy_insert(&root);
+	/* if the dictionary is empty */
 	if (root == NULL) {
-		words = malloc(sizeof(vector));
-		init(words);
-		inserts = malloc(sizeof(vector));
-		init(inserts);
-		init_dict(&root, word);
-		print_tree(root);
+		if (words == NULL) {
+			words = malloc(sizeof(vector));
+			init(words);
+		}
+		if (inserts == NULL) {
+			inserts = malloc(sizeof(vector));
+			init(inserts);
+		}
+		root = init_dict(word);
 		return nodes;
 	}
 	node *crossNode = root;
 	int elementsFound = 0;
 	int index;
 	int wordLength;
+	/* calculate word's length */
 	if (start != -1) {
 		wordLength = end - start + 1;
 		index = get_index(word[start]);
@@ -304,108 +268,122 @@ int insert(char *word, int start, int end)
 		wordLength = strlen(word);
 		index = get_index(word[elementsFound]);
 	}
-	// dopóki istnieje ścieżka zadana tymi literami
-	while (crossNode->edges[index] != NULL) { //wyrzuciłam crossNode != NULL
-		// nie jest liściem, ide po label, sprawdzam czy sie zawiera, różni itp
-		edge **edge = &(crossNode->edges[index]);
+	/* while there is a path with given letters */
+	while (crossNode->edges[index] != NULL) {
+		/* crossNode is not a leaf, check the label if contains the pattern */
+		edge *edge = crossNode->edges[index];
 		int diff = elementsFound;
 		char *suff;
 		if (start != -1)
-			suff = substring(word, start, end);
+			suff = substring(word, start + elementsFound, end);
 		else
 			suff = suffix(word, elementsFound);
 		int matchFound = check_coincident(suff, &elementsFound,
-				(*edge)->label->label, (*edge)->label->start,
-				(*edge)->label->end);
+				edge->label->label, edge->label->start, edge->label->end);
 		free(suff);
+		suff = NULL;
 		diff = elementsFound - diff;
-		int labelLength = (*edge)->label->end - (*edge)->label->start + 1;
+		int labelLength = edge->label->end - edge->label->start + 1;
 		if (matchFound && (diff < labelLength)) {
-			// skonczyl sie pattern, czyli zawiera się -> nowy mid wezel
-
-			node *mid = split_edge(*edge, diff, shift + size(words));
-			nodeInfo *info;
-			create_nodeInfo(&info, mid, wordLength);
-			print_tree(root);
+			/* case 1: pattern ended, before label -> just add a mid node
+			 * different word's starts for insert and prev operations! */
+			node *mid = split_edge(edge, diff, size(words));
+			if (start == NO_NUMBER)
+				create_nodeInfo(mid, wordLength, 0);
+			else {
+				create_nodeInfo(mid, wordLength,
+						edge->label->start - (elementsFound - diff));
+			}
 			return nodes;
 		}
 		else if (matchFound && (elementsFound < wordLength)) {
-			// ide dalej, bo nie skończył mi się pattern, a przeszłam po labelu
-			fprintf(stderr,
-					"<insert> skończyła się krwedz, ide dalej do wezla nr: %d\n",
-					(*edge)->child->wordNum);
-			crossNode = (*edge)->child;
-			index = get_index(word[elementsFound]);
+			/* case 2: got to next node, because label ended
+			 * different word's starts for insert and prev operations! */
+			crossNode = edge->child;
+			if (start == NO_NUMBER)
+				index = get_index(word[elementsFound]);
+			else
+				index = get_index(word[start + elementsFound]);
 		}
 		else if (matchFound && (diff == labelLength)
-				&& (elementsFound == wordLength)) {
-			// takie słowo istnieje
+				&& (elementsFound == wordLength)
+				&& (edge->child->wordNum != -1)) {
+			/* case 3: such word already exists! */
 			return ERROR;
 		}
+		else if (matchFound && (diff == labelLength)
+				&& (elementsFound == wordLength)
+				&& (edge->child->wordNum == -1)) {
+			/* case 4: there is a node, but with -1, change wordNum */
+			edge->child->wordNum = size(words);
+			if (start == -1)
+				create_nodeInfo(edge->child, wordLength, 0);
+			else
+				create_nodeInfo(edge->child, wordLength,
+						edge->label->end - elementsFound + 1);
+			return nodes;
+		}
 		else if (!matchFound) {
-			// rózni się -> nowy mid węzeł
-			fprintf(stderr, "match not found\n");
-			//store_label(word);
-			node *mid = split_edge(*edge, diff, NO_NUMBER);
-			add_node(mid, elementsFound, shift + size(words),
-					store_label(word));
-			print_tree(root);
-			//		fprintf(stderr, "<insert>2 vector<0> parent children: %d\n", ((nodeInfo *)at(words, 0))->node->parentEdge->parent->children);
-			//push_back(words, (*edge)->child->edges[nextIndexWord]->child);
+			/* case 5: label differs from pattern, new mid node
+			 * different word's starts for insert and prev operations! */
+			node *mid = split_edge(edge, diff, NO_NUMBER);
+			if (start == -1) {
+				add_node(mid, elementsFound, size(words), store_label(word), 0);
+			}
+			else {
+				add_node_prev(mid, start, start + elementsFound, end,
+						size(words), word);
+			}
 			return nodes;
 		}
 	}
 	if ((elementsFound < wordLength) && (start == NO_NUMBER)) {
-		/* normal insert, edge with new first symbol, add to inserts */
-		// z buta wstawiam
-		fprintf(stderr,
-				"<insert> z buta całość dodaje, jestem w wezle nr: %d\n",
-				crossNode->wordNum);
-
-		add_node(crossNode, elementsFound, shift + size(words),
-				store_label(word));
-		print_tree(root);
+		/* case 6: normal insert, edge with new first symbol, add to inserts */
+		add_node(crossNode, elementsFound, size(words), store_label(word), 0);
 	}
 	else if ((elementsFound < wordLength) && (start != NO_NUMBER)) {
-		/* adding word from prev command, does not store label */
-		add_node_prev(crossNode, start + elementsFound, end, shift + size(words), word);
-		print_tree(root);
+		/* case 6: adding word from prev command, does not store label */
+		add_node_prev(crossNode, start, start + elementsFound, end, size(words),
+				word);
 	}
-
 	return nodes;
 }
 
 int prev(int number, int start, int end)
 {
-	/* is the dictionary not empty?
-	 * is the word number valid?
-	 * is the length > start & >end?
-	 * are start & end >= 0?
-	 * is start < end?
-	 */
 	int length;
 	char *pattern;
+	nodeInfo *info = NULL;
 	if (words != NULL) {
-		nodeInfo *info = (nodeInfo *) at(words, number);
-		if (info != NULL) {
-			length = info->length;
-			fprintf(stderr, "<prev> at(words, number) != NULL i length: %d\n",
-					length);
-			if ((start <= end) && (start < length) && (end < length)) {
-				// go up and get the string
-				pattern = concatenate(number, start, end);
-				labelInfo *label = info->node->parentEdge->label;
-				// go down the tree and see if such a pattern exists
-				int result = find(pattern);
-				if (result != LEAF) {
-					fprintf(stderr, "nie ma takiego slowa: %s\n", pattern);
-					free(pattern);
-					return insert(label->label, start, end);
+		void *err = NULL;
+		err = at(words, number);
+		if (err != NULL) {
+			info = (nodeInfo *) err;
+			if (info != NULL) {
+				length = info->length;
+				if ((start <= end) && (start < length) && (end < length)) {
+					// go up and get the string
+					labelInfo *label = info->node->parentEdge->label;
+					int myStart;
+					int myEnd;
+					myStart = info->start + start;
+					myEnd = myStart + (end - start + 1) - 1;
+					pattern = concatenate(number, myStart, myEnd);
+					// go down the tree and see if such a pattern exists
+					int result = find(pattern);
+					if (result != LEAF) {
+						free(pattern);
+						pattern = NULL;
+						return insert(label->label, myStart, myEnd);
+					}
+					else {
+						free(pattern);
+						pattern = NULL;
+						return ERROR;
+					}
 				}
-				else {
-					free(pattern);
+				else
 					return ERROR;
-				}
 			}
 			else
 				return ERROR;
@@ -417,7 +395,10 @@ int prev(int number, int start, int end)
 		return ERROR;
 }
 
-int find_next_child(node *node, int first)
+/*********************************TRIE MANIPULATION*****************************/
+
+/* finds next not NULLed edge */
+static int find_next_child(node *node, int first)
 {
 	int i;
 	for (i = 0; i < INDEXES; i++)
@@ -426,88 +407,100 @@ int find_next_child(node *node, int first)
 	return ERROR;
 }
 
-void merge_edges(edge *upper, edge *lower, int nodeNr)
+static void merge_edges(edge *upper, edge *lower, int nodeNr)
 {
 	node *toDelete = upper->child;
 	int number = toDelete->wordNum;
 	upper->child = lower->child;
 	upper->label->label = lower->label->label;
+	upper->label->start = lower->label->start
+			- (upper->label->end - upper->label->start + 1);
 	upper->label->end = lower->label->end;
 	lower->child->parentEdge = upper;
 	free(lower->label);
+	lower->label = NULL;
 	free(lower);
+	lower = NULL;
 	free(toDelete);
+	toDelete = NULL;
 	nodes--;
 	if ((nodeNr != number) && (number != NO_NUMBER))
-		delete_at(words, number - shift);
+		delete_at(words, number);
 }
 
-void free_node_edge(node **node)
+static void free_node_edge(node **node)
 {
 	free((*node)->parentEdge->label);
+	(*node)->parentEdge->label = NULL;
 	free((*node)->parentEdge);
+	(*node)->parentEdge = NULL;
 	free(*node);
+	*node = NULL;
+	node = NULL;
 	nodes--;
 }
 
-//TODO roota tez chcemy usunac jezeli bedzie to ostatnie slowo usuwane,
-//wtedy tez nulluje wektor, ale shift zostaje
+/********************************************************************************
+*								TRIE OPERATIONS									*
+*********************************************************************************/
+
 int delete(int number)
 {
 	if (words != NULL) {
-		int vecNumber = number - shift;
+		int vecNumber = number;
 		int nextChild = 0;
-		node **deleteNode = &((nodeInfo *) at(words, vecNumber))->node;
-		if (deleteNode != NULL) {
-			//if (shift != ERROR) {
-			int parentChildren = (*deleteNode)->parentEdge->parent->children;
-			node **parentNode = &(*deleteNode)->parentEdge->parent;
-			labelInfo *parentLabel = (*deleteNode)->parentEdge->label;
-			if (((*deleteNode)->parentEdge == NULL) && (parentChildren == 1)) {
-				//jest tylko ostatnie słowo, trzeba usunąć też roota
-				fprintf(stderr, "<delete> usuwam wszystko i roota\n");
-				free_node_edge(deleteNode);
-				free(*parentNode);
-				*parentNode = NULL;
-				nodes--;
+		void *error = at(words, vecNumber);
+		if (error != NULL) {
+			node **deleteNode = &((nodeInfo *) at(words, vecNumber))->node;
+			if (deleteNode != NULL) {
+				assert(*deleteNode != root);
+				int parentChildren = (*deleteNode)->parentEdge->parent->children;
+				node *parentNode = (*deleteNode)->parentEdge->parent;
+				labelInfo *parentLabel = (*deleteNode)->parentEdge->label;
+				if ((parentNode == root) && (is_leaf(*deleteNode))
+						&& (parentChildren == 1)) {
+					/* case 1: only this one node and root - delete both */
+					free(root);
+					root = NULL;
+					free_node_edge(deleteNode);
+					nodes--;
+				}
+				else if ((is_leaf(*deleteNode)) && (parentChildren == 2)
+						&& ((parentNode)->wordNum == -1)
+						&& (parentNode != root)) {
+					/* case 2: merge labels, because there is only one child left */
+					nextChild = find_next_child((parentNode),
+							get_index(parentLabel->label[parentLabel->start]));
+					merge_edges((parentNode)->parentEdge,
+							(parentNode)->edges[nextChild], number);
+					free_node_edge(deleteNode);
+				}
+				else if (is_leaf(*deleteNode)) {
+					/* case 3: only delete the node and its parentLabel */
+					(parentNode)->children--;
+					labelInfo *nextLabel = (*deleteNode)->parentEdge->label;
+					int next = get_index(nextLabel->label[nextLabel->start]);
+					free_node_edge(deleteNode);
+					parentNode->edges[next] = NULL;
+				}
+				else if (!is_leaf(*deleteNode)
+						&& ((*deleteNode)->children >= 2)) {
+					/* case 4: easy, just change deleteNode->wordNum to -1 */
+					(*deleteNode)->wordNum = NO_NUMBER;
+				}
+				else if (!is_leaf(*deleteNode)
+						&& ((*deleteNode)->children == 1)) {
+					/* case 5: merge deleteNode->parentEdge with child's edge */
+					nextChild = find_next_child(*deleteNode, NO_NUMBER);
+					merge_edges((*deleteNode)->parentEdge,
+							(*deleteNode)->edges[nextChild], number);
+				}
+				shift = delete_at(words, vecNumber);
+				return (shift == ERROR ? ERROR : nodes);
 			}
-			//dopóki moim ojcem nie jest root
-			else if ((is_leaf(*deleteNode)) && (parentChildren == 2)
-					&& ((*parentNode)->wordNum == -1)) {
-				//łączę parentNode->parentEdge z drugim dzieckiem parentNode
-				fprintf(stderr, "<delete>: przypadek 1\n");
-				nextChild = find_next_child((*parentNode),
-						get_index(parentLabel->label[parentLabel->start]));
-				merge_edges((*parentNode)->parentEdge,
-						(*parentNode)->edges[nextChild], number);
-				free_node_edge(deleteNode);
-				print_tree(root);
-			}
-			else if (is_leaf(*deleteNode)) {
-				//tylko usuwamy deleteNode->parentEdge i deleteNode
-				fprintf(stderr, "<delete>: przypadek 2\n");
-				(*parentNode)->children--;
-				(*parentNode)->edges[get_index(
-						parentLabel->label[parentLabel->start])] = NULL;
-				free_node_edge(deleteNode);
-				print_tree(root);
-			}
-			else if (!is_leaf(*deleteNode) && ((*deleteNode)->children >= 2)) {
-				// easy, just change deleteNode->wordNum to -1
-				fprintf(stderr, "<delete>: przypadek 3\n");
-				(*deleteNode)->wordNum = NO_NUMBER;
-			}
-			else if (!is_leaf(*deleteNode) && ((*deleteNode)->children == 1)) {
-				//łącze deleteNode->parentEdge z labelem dziecka
-				fprintf(stderr, "<delete>: przypadek 4\n");
-				nextChild = find_next_child(*deleteNode, NO_NUMBER);
-				fprintf(stderr, "<delete>: index edge: %c\n", nextChild + 97);
-				merge_edges((*deleteNode)->parentEdge,
-						(*deleteNode)->edges[nextChild], number);
-				print_tree(root);
-			}
-			shift = delete_at(words, vecNumber);
-			return (shift == ERROR ? shift : nodes);
+
+			else
+				return ERROR;
 		}
 		else
 			return ERROR;
@@ -516,23 +509,12 @@ int delete(int number)
 		return ERROR;
 }
 
-//TODO check if it works
 int find(char *pattern)
 {
-
-	/*
-	 * <parse get_word> aa i size: 2
-	 <find> patter to find: aa
-	 <trie check_coincident> pattern: aa label: aaaa
-	 <trie check_coincident> YES
-	 aaNO
-	 *
-	 */
 	if ((words == NULL) || (number_of_elements(words) == 0))
-		return ERROR;
+		return NO;
 	node *traverseNode = root;
 	int elementsFound = 0;
-	fprintf(stderr, "<find> patter to find: %s\n", pattern);
 	int length = strlen(pattern);
 	int diff = 0;
 	int i = 0;
@@ -540,27 +522,29 @@ int find(char *pattern)
 	while ((traverseNode != NULL) && (!is_leaf(traverseNode))
 			&& (elementsFound < length) && (foundNext)) {
 		i = get_index(pattern[elementsFound]);
-		fprintf(stderr, "<find>: elementsFound: %d and node nr %d\n",
-				elementsFound, traverseNode->wordNum);
 		if (traverseNode->edges[i] != NULL) {
 			// the pattern exists, check how much of it
 			edge *nextEdge = traverseNode->edges[i];
 			diff = elementsFound;
-			//TODO czy to tak moze byc
 			char *suff = suffix(pattern, elementsFound);
 			foundNext = check_coincident(suff, &elementsFound,
 					nextEdge->label->label, nextEdge->label->start,
 					nextEdge->label->end);
 			free(suff);
+			suff = NULL;
 			diff = elementsFound - diff;
 			if (elementsFound == length) {
-				if (diff < strlen(nextEdge->label->label))
+				/* found pattern */
+				if ((diff < strlen(nextEdge->label->label))
+						|| ((nextEdge->child != NULL)
+								&& (nextEdge->child->wordNum == NO_NUMBER)))
 					return YES;
 				else {
-					fprintf(stderr, "<find> LEAF\n");
+					/* there is such a word already */
 					return LEAF;
 				}
 			}
+			/* continue search */
 			traverseNode = nextEdge->child;
 		}
 		else
@@ -569,28 +553,32 @@ int find(char *pattern)
 	return NO;
 }
 
-//TODO
-// możliwe, że trzeba bedzie zmienić ilość gwiazdek
-void clear_tree(node **currentNode)
+static void clear_tree(node **currentNode)
 {
 	if (currentNode != NULL) {
-		int i = 0;
-		edge *currentEdge = NULL;
-		for (i = 0; i < INDEXES; i++) {
-			currentEdge = (*currentNode)->edges[i];
-			if (currentEdge != NULL) {
-				clear_tree(&((currentEdge)->child));
-				//free((currentEdge)->label->label);
-				free((currentEdge)->label);
-				free(currentEdge);
-				currentEdge = NULL;
+		if (*currentNode != NULL) {
+			int i = 0;
+			edge *currentEdge = NULL;
+			for (i = 0; i < INDEXES; i++) {
+				assert(*currentNode != NULL);
+				currentEdge = (*currentNode)->edges[i];
+				if (currentEdge != NULL) {
+					assert(currentEdge != NULL);
+					clear_tree(&((currentEdge)->child));
+					free((currentEdge)->label);
+					currentEdge->label = NULL;
+					free(currentEdge);
+					currentEdge = NULL;
+				}
 			}
+			free(*currentNode);
+			*currentNode = NULL;
+			currentNode = NULL;
 		}
-		free(*currentNode);
-		*currentNode = NULL;
 	}
 }
 
+/* clear tree and vectors, zero counter and nodesNum */
 void clear(int *counter, int *nodesNum)
 {
 	if (root != NULL)

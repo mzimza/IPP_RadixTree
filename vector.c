@@ -9,6 +9,9 @@
 #include <string.h>
 #include "vector.h"
 
+#define ERROR	-1
+#define BASE_SIZE	32
+
 void resize(vector *vec, int newLimit)
 {
 	vec->limit *= 2;
@@ -25,15 +28,15 @@ void push_back(vector *vec, void *node)
 		resize(vec, vec->limit * 2);
 	vec->tab[vec->size] = node;
 	vec->size++;
-	fprintf(stderr, "<vector push_back>: adding node nr: %d i wsadzam wskaźnik: %#010x\n", vec->size - 1, (unsigned int) node);
-//	return (vec->size - 1);
 }
 
 void *at(vector *vec, int pos)
 {
-	if ((pos >= 0) && (pos < vec->limit))
+	pos = pos - vec->shift;
+	if ((pos >= 0) && (pos < vec->size)) {
 		return vec->tab[pos];
-	return (void *) ERROR;
+	}
+	return NULL;
 }
 
 void set(vector *vec, int pos, void *node)
@@ -44,20 +47,22 @@ void set(vector *vec, int pos, void *node)
 
 int delete_at(vector *vec, int pos)
 {
-	int shift = 0;
-	if ((pos >= 0) && (pos < vec->limit)) {
-		free(vec->tab[pos]);
-		vec->tab[pos] = NULL;
+	int vecPos = pos - vec->shift;
+	if ((vecPos >= 0) && (vecPos < vec->size)) {
+		free(vec->tab[vecPos]);
+		vec->tab[vecPos] = NULL;
 		vec->deleted++;
 	}
-	else
-		shift = ERROR;
+	else {
+		return ERROR;
+	}
 	if (vec->deleted == vec->size) {
-		shift = vec->deleted;
+		int shift = vec->shift + vec->deleted;
 		delete_all(vec);
 		init(vec);
+		vec->shift = shift;
 	}
-	return shift;
+	return 0;
 }
 
 void delete_all(vector *vec)
@@ -65,7 +70,6 @@ void delete_all(vector *vec)
 	int i = 0;
 	for (i = 0; i < vec->size; i++)
 		if (vec->tab[i] != NULL) {
-			fprintf(stderr, "<delete_all> usuwam wskaźnik: %#010x\n", (unsigned int)vec->tab[i]);
 			free(vec->tab[i]);
 		}
 	if (vec->tab != NULL)
@@ -74,7 +78,7 @@ void delete_all(vector *vec)
 
 int size(vector *vec)
 {
-	return vec->size;
+	return (vec->size + vec->shift);
 }
 
 int number_of_elements(vector *vec)
@@ -89,4 +93,5 @@ void init(vector *vec)
 	(vec)->size = 0;
 	(vec)->limit = BASE_SIZE;
 	(vec)->deleted = 0;
+	(vec)->shift = 0;
 }

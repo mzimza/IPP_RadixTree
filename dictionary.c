@@ -27,20 +27,21 @@ regex_t insert_r, prev_r, find_r, delete_r, clear_r;
 
 void exit_dictionary(int sig)
 {
-	printf("Caught interrupt signal. Exiting...\n");
 	free_all(&insert_r, &prev_r, &find_r, &delete_r, &clear_r);
+	clear(&counter, &nodes);
 	free(line);
 	exit(0);
 }
 
 int main(int argc, char *argv[])
 {
-	/* clean everything nicely up, if SIGINT */
+	/* clean everything nicely up, if SIGINT or SIGSEGV*/
 	if (signal(SIGINT, exit_dictionary) == SIG_ERR)
 		fprintf(stderr, "Signal handling error\n");
 	if (signal(SIGSEGV, exit_dictionary) == SIG_ERR)
 		fprintf(stderr, "Signal handling error\n");
 
+	/* set options if valid */
 	if ((option_set = check_for_options(argc, argv))) {
 		nodes = 0;
 		checkNodes = 0;
@@ -58,61 +59,59 @@ int main(int argc, char *argv[])
 		if (readBytes != ERROR) {
 			matchType = match(&insert_r, &prev_r, &find_r, &delete_r, &clear_r,
 					line);
+			/* handle commands */
 			switch (matchType) {
 				case INSERT_CORRECT:
 					pattern = get_word(INSERT_CORRECT, line, readBytes);
-					printf("%s", pattern);
 					if ((checkNodes = insert(pattern, NO_NUMBER, NO_NUMBER)) == ERROR) {
-						ignored = YES;
 						ignore();
 					}
 					else {
 						nodes = checkNodes;
 						on_success(counter);
 						counter++;
+						if (option_set)
+							print_nodes(nodes);
 					}
 					break;
 				case PREV_CORRECT:
 					get_number_prev(&number, &start, &end, line);
-					printf("prev: %d %d %d\n", number, start, end);
-					if ((checkNodes = prev(number, start, end)) == ERROR) {
-						ignored = YES;
+					if ((number == ERROR) || (start == ERROR) || (end == ERROR)
+							|| ((checkNodes = prev(number, start, end)) == ERROR)) {
 						ignore();
 					}
 					else {
 						nodes = checkNodes;
 						on_success(counter);
 						counter++;
+						if (option_set)
+							print_nodes(nodes);
 					}
 					break;
 				case FIND_CORRECT:
 					pattern = get_word(FIND_CORRECT, line, readBytes);
-					printf("%s", pattern);
-					print_find(find(pattern), &ignored);
+					print_find(find(pattern));
 					break;
 				case DELETE_CORRECT:
 					get_number_delete(&number, line);
-					printf("%d \n", number);
-					if ((checkNodes = delete(number)) == ERROR) {
-						ignored = YES;
+					if ((number == ERROR) || ((checkNodes = delete(number)) == ERROR)) {
 						ignore();
 					}
 					else {
 						nodes = checkNodes;
 						print_delete(number);
+						if (option_set)
+							print_nodes(nodes);
 					}
 					break;
 				case CLEAR_CORRECT:
 					clear(&counter, &nodes);
 					print_clear();
+					if (option_set)
+						print_nodes(nodes);
 					break;
 				default:
-					ignored = YES;
 					ignore();
-			}
-			if ((option_set) && (ignored == NO)) {
-				print_nodes(nodes);
-				ignored = NO;
 			}
 		}
 		free(line);

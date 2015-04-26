@@ -8,7 +8,7 @@
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
-/* for find function */
+/* CODES FOR FIND */
 #define NO	0	/* pattern not found */
 #define YES	1	/* pattern found is a prefix */
 #define LEAF	2	/*pattern found is a word */
