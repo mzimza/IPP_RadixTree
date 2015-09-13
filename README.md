@@ -1,5 +1,6 @@
 # IPP_RadixTree
-First assigment for Individual Programming Project
+First assigment for Individual Programming Project.
+
 Implementation of Radix Tree in C.
 
 Description of the assignment in Polish:
